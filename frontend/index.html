@@ -1,4 +1,3 @@
-
 <html lang="en">
 
 <head>
@@ -768,14 +767,11 @@
         // =================================================
 
         L.tileLayer(
-            'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             {
 
                 attribution:
-                    '&copy; OpenStreetMap contributors &copy; CARTO',
-
-                subdomains:
-                    'abcd',
+                    '&copy; OpenStreetMap contributors',
 
                 maxZoom:
                     20
@@ -784,6 +780,14 @@
         ).addTo(map);
 
 
+
+        // =================================================
+        // PRODUCTION API CONFIGURATION
+        // =================================================
+        // This is the public backend used by the deployed frontend.
+        // Do not change this to localhost if you want the website
+        // to work from another computer.
+        const BACKEND_URL = "https://route-mind-engine.onrender.com";
 
         // =================================================
         // GLOBAL VARIABLES
@@ -899,7 +903,7 @@
 
                 const response =
                     await fetch(
-                        "http://127.0.0.1:8000/api/places"
+                        BACKEND_URL + "/api/places"
                     );
 
 
@@ -1905,7 +1909,7 @@ document.getElementById("welcome-message").classList.add("hidden");
 
                 requests.push(
                     fetch(
-                        "http://127.0.0.1:8000/api/route",
+                        BACKEND_URL + "/api/route",
                         {
                             method: "POST",
                             headers: {
@@ -1971,7 +1975,7 @@ document.getElementById("welcome-message").classList.add("hidden");
 
             const response =
                 await fetch(
-                    "http://127.0.0.1:8000/api/route",
+                    BACKEND_URL + "/api/route",
                     {
                         method: "POST",
 
@@ -2631,7 +2635,7 @@ document.getElementById("welcome-message").classList.add("hidden");
 
                 const response =
                     await fetch(
-                        "http://127.0.0.1:8000/api/route",
+                        BACKEND_URL + "/api/route",
                         {
                             method: "POST",
 
@@ -2851,12 +2855,12 @@ document.getElementById("welcome-message").classList.add("hidden");
 
 
                 // =============================================
-                // CALL NEW FASTAPI ENDPOINT
+                // CALL PUBLIC PRODUCTION API
                 // =============================================
 
                 const response =
                     await fetch(
-                        "http://127.0.0.1:8000/api/nearby-places",
+                        BACKEND_URL + "/api/nearby-places",
                         {
 
                             method:
@@ -3380,7 +3384,7 @@ document.getElementById("welcome-message").classList.add("hidden");
 
                 alert(
                     "Could not connect to the RouteMind backend. " +
-                    "Make sure FastAPI is running on port 8000."
+                    "Please try again in a few seconds."
                 );
 
             }
@@ -3398,7 +3402,7 @@ document.getElementById("welcome-message").classList.add("hidden");
             () => {
 
 
-                // Load existing saved places
+                // Load existing saved places from the public API
 
                 // Do not load all saved places on startup.
         // Attraction markers are added only after a search.
