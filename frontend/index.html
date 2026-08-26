@@ -1,0 +1,3485 @@
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        RouteMind Engine // Full-Stack Travel Platform
+    </title>
+
+
+    <!-- Google Fonts -->
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+
+    <!-- Tailwind -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+
+        tailwind.config = {
+
+            theme: {
+
+                extend: {
+
+                    fontFamily: {
+
+                        sans: [
+                            'Plus Jakarta Sans',
+                            'sans-serif'
+                        ]
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    </script>
+
+
+    <!-- Leaflet -->
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+
+
+    <style>
+
+        #map {
+
+            height: 100%;
+            width: 100%;
+
+        }
+
+
+
+        /* =================================================
+           MOBILE RESPONSIVE LAYOUT
+           ================================================= */
+        @media (max-width: 767px) {
+
+            html, body {
+                min-height: 100%;
+            }
+
+            body {
+                height: auto !important;
+                min-height: 100vh;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+            }
+
+            header {
+                min-height: 60px;
+                height: auto !important;
+                padding: 0.75rem 1rem !important;
+                gap: 0.75rem;
+            }
+
+            header .font-bold.tracking-tight {
+                font-size: 1rem;
+            }
+
+            body > div.flex.flex-1 {
+                flex-direction: column !important;
+                overflow: visible !important;
+                min-height: 0;
+            }
+
+            aside {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                max-height: none !important;
+                border-right: 0 !important;
+                border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+                padding: 1rem !important;
+                gap: 1rem !important;
+                overflow: visible !important;
+                box-sizing: border-box;
+            }
+
+            #search-input {
+                min-width: 0;
+                width: 100%;
+            }
+
+            #search-btn {
+                flex-shrink: 0;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+
+            #route-result,
+            #route-stops,
+            #itinerary-summary,
+            #search-results,
+            #details-card {
+                max-width: 100%;
+                min-width: 0;
+                overflow-wrap: anywhere;
+            }
+
+            main {
+                width: 100% !important;
+                height: auto !important;
+                min-height: 52vh;
+                flex: none !important;
+            }
+
+            #map {
+                width: 100%;
+                height: 52vh !important;
+                min-height: 360px;
+                max-height: 620px;
+            }
+
+            /* Keep compact two-column metric cards on phones. */
+            #route-result .grid.grid-cols-2,
+            #google-details .grid.grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            /* Stack itinerary controls on narrow screens. */
+            #itinerary-panel .grid.grid-cols-2 {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            input,
+            select,
+            button {
+                max-width: 100%;
+            }
+
+            button {
+                min-height: 42px;
+            }
+
+            .leaflet-control-zoom {
+                margin-right: 8px !important;
+            }
+
+            .leaflet-bottom.leaflet-right {
+                margin-bottom: 8px;
+                margin-right: 4px;
+            }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+
+            width: 6px;
+
+        }
+
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+
+            background:
+                rgba(30, 41, 59, 0.5);
+
+        }
+
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+
+            background:
+                #334155;
+
+            border-radius: 4px;
+
+        }
+
+
+    </style>
+
+</head>
+
+
+<body
+    class="bg-[#0b0f19] text-slate-100 font-sans h-screen flex flex-col overflow-hidden antialiased"
+>
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header
+        class="h-16 border-b border-slate-800/80 bg-[#0d1321]/80 backdrop-blur-md flex items-center justify-between px-6 z-10"
+    >
+
+        <div class="flex items-center gap-3">
+
+            <div
+                class="h-8 w-8 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-center text-emerald-400 font-bold text-sm"
+            >
+
+                🧭
+
+            </div>
+
+
+            <span
+                class="font-bold tracking-tight text-lg bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent"
+            >
+
+                RouteMind Engine
+
+            </span>
+
+        </div>
+
+
+        <div class="flex items-center gap-4 text-xs">
+
+            <div
+                class="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800/40 rounded-full border border-slate-700/50"
+            >
+
+                <span
+                    class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"
+                ></span>
+
+
+                <span
+                    class="text-slate-400 font-mono"
+                >
+
+                    Live API Connected
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
+    <div class="flex flex-1 overflow-hidden">
+
+
+        <!-- =================================================
+             LEFT SIDEBAR
+        ================================================== -->
+
+        <aside
+            class="w-[380px] bg-[#0c101d] border-r border-slate-800/60 p-6 flex flex-col gap-6 overflow-y-auto custom-scrollbar"
+        >
+
+
+            <!-- SEARCH -->
+
+            <div>
+
+                <label
+                    class="block text-[11px] font-bold tracking-widest text-slate-400 uppercase mb-2"
+                >
+
+                    Search Destination
+
+                </label>
+
+
+                <div class="flex gap-2">
+
+                    <input
+                        id="search-input"
+                        type="text"
+                        placeholder="Enter place name..."
+                        class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    >
+
+
+                    <button
+                        id="search-btn"
+                        class="px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 transition font-semibold"
+                    >
+
+                        Search
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- LOADING -->
+
+            <div
+                id="loading-box"
+                class="hidden text-center text-emerald-400 text-sm py-3"
+            >
+
+                Searching...
+
+            </div>
+
+
+
+            <!-- SEARCH RESULTS -->
+
+            <!-- =================================================
+                 ROUTE BUILDER
+            ================================================== -->
+
+            <div
+                id="route-panel"
+                class="hidden bg-slate-900/40 border border-slate-800/60 rounded-2xl p-4"
+            >
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-white">
+                            🛣️ Build Route
+                        </h3>
+                        <p class="text-[11px] text-slate-500 mt-1">
+                            Select attractions to include in your route.
+                        </p>
+                    </div>
+
+                    <span
+                        id="route-selected-count"
+                        class="text-[11px] text-emerald-400 font-semibold"
+                    >
+                        0 selected
+                    </span>
+                </div>
+
+                <label
+                    class="flex items-center gap-2 mt-3 text-xs text-slate-400 cursor-pointer"
+                >
+                    <input
+                        id="use-current-location"
+                        type="checkbox"
+                        class="accent-emerald-500 h-4 w-4"
+                    />
+                    <span>Start route from my current location</span>
+                </label>
+
+                <div
+                    id="location-status"
+                    class="text-[11px] text-slate-500 mt-2"
+                >
+                    Current location is optional.
+                </div>
+
+                <button
+                    id="generate-route-btn"
+                    type="button"
+                    disabled
+                    class="w-full px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 transition font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    Generate Route
+                </button>
+
+                <div
+                    id="route-loading"
+                    class="hidden text-center text-emerald-400 text-xs mt-3"
+                >
+                    Calculating road route...
+                </div>
+
+                <div
+                    id="route-result"
+                    class="hidden mt-4 bg-slate-800/50 border border-slate-700/50 rounded-xl p-3"
+                >
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <div class="text-[10px] text-slate-500 uppercase">
+                                Distance
+                            </div>
+                            <div
+                                id="route-distance"
+                                class="text-sm font-semibold text-white mt-1"
+                            >
+                                --
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="text-[10px] text-slate-500 uppercase">
+                                Driving Time
+                            </div>
+                            <div
+                                id="route-duration"
+                                class="text-sm font-semibold text-white mt-1"
+                            >
+                                --
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="route-stops"
+                        class="mt-3 text-xs text-slate-300 space-y-1"
+                    ></div>
+
+                    <div
+                        id="route-optimization-status"
+                        class="hidden mt-3 text-[11px] text-sky-400"
+                    ></div>
+
+                    <div
+                        id="itinerary-panel"
+                        class="hidden mt-4 pt-4 border-t border-slate-700/60"
+                    >
+                        <h4 class="text-sm font-bold text-white">
+                            🗺️ Trip Itinerary
+                        </h4>
+
+                        <p class="text-[11px] text-slate-500 mt-1 mb-3">
+                            Plan your visit using opening hours and visit duration.
+                        </p>
+
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <div>
+                                <label class="text-[10px] text-slate-500 uppercase" for="trip-start-time">
+                                    Start time
+                                </label>
+                                <input
+                                    id="trip-start-time"
+                                    type="time"
+                                    value="09:00"
+                                    class="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white"
+                                />
+                            </div>
+
+                            <div>
+                                <label class="text-[10px] text-slate-500 uppercase" for="visit-duration">
+                                    Visit duration
+                                </label>
+                                <select
+                                    id="visit-duration"
+                                    class="mt-1 w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-xs text-white"
+                                >
+                                    <option value="60">1 hour</option>
+                                    <option value="90" selected>1 hr 30 min</option>
+                                    <option value="120">2 hours</option>
+                                    <option value="180">3 hours</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div
+                            id="itinerary-list"
+                            class="space-y-3"
+                        ></div>
+
+                        <div
+                            id="itinerary-summary"
+                            class="mt-4 pt-3 border-t border-slate-700/60 text-[11px] text-slate-400"
+                        ></div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div
+                id="search-results"
+                
+            >
+
+            </div>
+
+
+
+
+            <!-- =================================================
+                 WELCOME MESSAGE
+            ================================================== -->
+
+            <div
+                id="welcome-message"
+                class="flex-1 flex flex-col justify-center text-center py-12 px-4 border border-dashed border-slate-800 rounded-2xl bg-slate-900/20"
+            >
+
+                <span class="text-3xl mb-3">
+
+                    📍
+
+                </span>
+
+
+                <h3 class="font-semibold text-slate-300 mb-1">
+
+                    Live Database Map
+
+                </h3>
+
+
+                <p
+                    class="text-xs text-slate-500 leading-relaxed"
+                >
+
+                    Search for a destination to discover
+                    tourist attractions and display them
+                    on the live map.
+
+                </p>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 DETAILS CARD
+            ================================================== -->
+
+            <div
+                id="details-card"
+                class="hidden flex flex-col gap-5"
+            >
+
+                <div>
+
+                    <h2
+                        id="place-name"
+                        class="text-2xl font-bold tracking-tight mb-2"
+                    >
+
+                        ---
+
+                    </h2>
+
+
+                    <div class="flex flex-wrap gap-2">
+
+                        <span
+                            id="realness-badge"
+                            class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border"
+                        >
+
+                            ---
+
+                        </span>
+
+                    </div>
+
+                </div>
+                <!-- GOOGLE PLACE DETAILS -->
+
+                <div
+                    id="google-details"
+                    class="bg-slate-900/40 border border-slate-800/60 rounded-xl p-4"
+                >
+
+                    <h3
+                        class="text-[11px] font-bold tracking-widest text-slate-400 uppercase mb-3"
+                    >
+                        Google Place Details
+                    </h3>
+
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+
+                        <div
+                            class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-3"
+                        >
+                            <div class="text-[10px] text-slate-500 uppercase tracking-wide">
+                                Rating
+                            </div>
+
+                            <div
+                                id="place-rating"
+                                class="text-sm font-semibold text-amber-400 mt-1"
+                            >
+                                Not available
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-3"
+                        >
+                            <div class="text-[10px] text-slate-500 uppercase tracking-wide">
+                                Reviews
+                            </div>
+
+                            <div
+                                id="place-reviews"
+                                class="text-sm font-semibold text-slate-200 mt-1"
+                            >
+                                Not available
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="mb-4">
+
+                        <div
+                            class="text-[10px] text-slate-500 uppercase tracking-wide mb-2"
+                        >
+                            Opening Hours
+                        </div>
+
+                        <div
+                            id="place-opening-hours"
+                            class="text-xs text-slate-300 leading-relaxed"
+                        >
+                            Opening hours not available.
+                        </div>
+
+                    </div>
+
+                    <a
+                        id="place-website"
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="hidden w-full items-center justify-center px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition text-sm font-semibold text-white"
+                    >
+                        🌐 Visit Website
+                    </a>
+
+                </div>
+
+
+
+
+
+                <!-- ADDRESS / INFORMATION -->
+
+                <div
+                    class="bg-slate-900/40 border border-slate-800/60 rounded-xl p-4"
+                >
+
+                    <h3
+                        class="text-[11px] font-bold tracking-widest text-slate-400 uppercase mb-2"
+                    >
+
+                        Location Information
+
+                    </h3>
+
+
+                    <p
+                        id="place-history"
+                        class="text-xs text-slate-300 leading-relaxed font-normal"
+                    >
+
+                        ---
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </aside>
+
+
+
+        <!-- =================================================
+             MAP
+        ================================================== -->
+
+        <main
+            class="flex-1 relative bg-[#090d16]"
+        >
+
+            <div
+                id="map"
+                class="z-0"
+            ></div>
+
+        </main>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+    ====================================================== -->
+
+    <script>
+
+
+        // =================================================
+        // INITIALIZE MAP
+        // =================================================
+
+        const map = L.map(
+            'map',
+            {
+                zoomControl: false
+            }
+        );
+
+
+        // Start with an India-wide view.
+        // The map automatically zooms to the searched attractions.
+        map.setView(
+            [22.9734, 78.6569],
+            5
+        );
+
+
+        L.control.zoom(
+            {
+                position: 'bottomright'
+            }
+        ).addTo(map);
+
+
+
+        // =================================================
+        // MAP TILE LAYER
+        // =================================================
+
+        L.tileLayer(
+            'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            {
+
+                attribution:
+                    '&copy; OpenStreetMap contributors &copy; CARTO',
+
+                subdomains:
+                    'abcd',
+
+                maxZoom:
+                    20
+
+            }
+        ).addTo(map);
+
+
+
+        // =================================================
+        // GLOBAL VARIABLES
+        // =================================================
+
+        let markers = [];
+        let selectedRoutePlaces = [];
+        let currentUserLocation = null;
+        let currentLocationMarker = null;
+        let routeLayer = null;
+        let routeLegs = [];
+
+
+
+        const searchInput =
+            document.getElementById(
+                "search-input"
+            );
+
+
+        const searchButton =
+            document.getElementById(
+                "search-btn"
+            );
+
+
+        const loadingBox =
+            document.getElementById(
+                "loading-box"
+            );
+
+
+        const resultsBox =
+            document.getElementById(
+                "search-results"
+            );
+
+        const routePanel =
+            document.getElementById("route-panel");
+
+        const generateRouteButton =
+            document.getElementById("generate-route-btn");
+
+        const useCurrentLocation =
+            document.getElementById("use-current-location");
+
+        const locationStatus =
+            document.getElementById("location-status");
+
+        const routeSelectedCount =
+            document.getElementById("route-selected-count");
+
+        const routeResult =
+            document.getElementById("route-result");
+
+        const routeDistance =
+            document.getElementById("route-distance");
+
+        const routeDuration =
+            document.getElementById("route-duration");
+
+        const routeStops =
+            document.getElementById("route-stops");
+
+        const routeOptimizationStatus =
+            document.getElementById("route-optimization-status");
+
+        const routeLoading =
+            document.getElementById("route-loading");
+
+        const itineraryPanel =
+            document.getElementById("itinerary-panel");
+
+        const itineraryList =
+            document.getElementById("itinerary-list");
+
+        const itinerarySummary =
+            document.getElementById("itinerary-summary");
+
+        const tripStartTime =
+            document.getElementById("trip-start-time");
+
+        const visitDuration =
+            document.getElementById("visit-duration");
+
+
+
+        // =================================================
+        // LOAD SAVED PLACES
+        // =================================================
+
+        async function loadMapDataFromBackend() {
+
+
+            // Remove old markers
+
+            markers.forEach(
+                marker => {
+
+                    map.removeLayer(
+                        marker
+                    );
+
+                }
+            );
+
+
+            markers = [];
+
+
+            try {
+
+
+                const response =
+                    await fetch(
+                        "http://127.0.0.1:8000/api/places"
+                    );
+
+
+                const places =
+                    await response.json();
+
+
+
+                places.forEach(
+                    place => {
+
+
+                        if (
+                            place.latitude === undefined ||
+                            place.longitude === undefined
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        const marker =
+                            L.marker(
+                                [
+                                    place.latitude,
+                                    place.longitude
+                                ]
+                            ).addTo(map);
+
+
+                        markers.push(
+                            marker
+                        );
+
+
+                        marker.on(
+                            "click",
+                            () => {
+
+                                showPlaceDetails(
+                                    place
+                                );
+
+                            }
+                        );
+
+
+                    }
+                );
+
+
+            }
+            catch (error) {
+
+
+                console.error(
+                    "Pipeline connection breakdown:",
+                    error
+                );
+
+
+            }
+
+        }
+
+
+
+        // =================================================
+        // SHOW PLACE DETAILS
+        // =================================================
+        function formatReviewCount(count) {
+
+            if (
+                count === null ||
+                count === undefined ||
+                count === ""
+            ) {
+                return "Not available";
+            }
+
+            const number = Number(count);
+
+            if (Number.isNaN(number)) {
+                return String(count);
+            }
+
+            return number.toLocaleString();
+        }
+
+
+        function updateGooglePlaceDetails(place) {
+
+            const ratingElement =
+                document.getElementById("place-rating");
+
+            const reviewsElement =
+                document.getElementById("place-reviews");
+
+            const openingHoursElement =
+                document.getElementById("place-opening-hours");
+
+            const websiteElement =
+                document.getElementById("place-website");
+
+
+            if (!ratingElement) {
+                return;
+            }
+
+
+            // Rating
+
+            if (
+                place.rating !== null &&
+                place.rating !== undefined
+            ) {
+
+                ratingElement.innerText =
+                    `⭐ ${Number(place.rating).toFixed(1)} / 5`;
+
+            } else {
+
+                ratingElement.innerText =
+                    "Not available";
+            }
+
+
+            // Review count
+
+            if (reviewsElement) {
+
+                reviewsElement.innerText =
+                    formatReviewCount(
+                        place.review_count
+                    );
+            }
+
+
+            // Opening hours
+
+            if (openingHoursElement) {
+
+                openingHoursElement.innerHTML = "";
+
+                const openingHours =
+                    place.opening_hours;
+
+                const descriptions =
+                    openingHours &&
+                    Array.isArray(
+                        openingHours.weekdayDescriptions
+                    )
+                        ? openingHours.weekdayDescriptions
+                        : [];
+
+                if (descriptions.length > 0) {
+
+                    descriptions.forEach(
+                        description => {
+
+                            const row =
+                                document.createElement("div");
+
+                            row.className =
+                                "mb-1 text-xs text-slate-300";
+
+                            row.innerText =
+                                description;
+
+                            openingHoursElement.appendChild(
+                                row
+                            );
+                        }
+                    );
+
+                } else {
+
+                    openingHoursElement.innerText =
+                        "Opening hours not available.";
+                }
+            }
+
+
+            // Website
+
+            if (websiteElement) {
+
+                if (
+                    place.website &&
+                    typeof place.website === "string"
+                ) {
+
+                    websiteElement.href =
+                        place.website;
+
+                    websiteElement.classList.remove(
+                        "hidden"
+                    );
+
+                    websiteElement.classList.add(
+                        "inline-flex"
+                    );
+
+                } else {
+
+                    websiteElement.href =
+                        "#";
+
+                    websiteElement.classList.remove(
+                        "inline-flex"
+                    );
+
+                    websiteElement.classList.add(
+                        "hidden"
+                    );
+                }
+            }
+        }
+
+
+
+        function showPlaceDetails(place) {
+
+            
+            updateGooglePlaceDetails(place);
+
+document.getElementById("welcome-message").classList.add("hidden");
+
+            const detailsCard = document.getElementById("details-card");
+            detailsCard.classList.remove("hidden");
+
+            document.getElementById("place-name").innerText =
+                place.name || "---";
+
+            document.getElementById("place-history").innerText =
+                place.address || "No address available.";
+
+            // SCORE
+            const badge = document.getElementById("realness-badge");
+            badge.innerText = `⭐ Score: ${place.score ?? 0}`;
+            badge.className =
+                "px-2.5 py-0.5 rounded-full text-[11px] font-bold " +
+                "bg-emerald-500/10 text-emerald-400 " +
+                "border border-emerald-500/20";
+
+            // =================================================
+            // PHOTO GALLERY
+            // =================================================
+
+            let gallery = document.getElementById("detail-gallery");
+
+            if (!gallery) {
+                gallery = document.createElement("div");
+                gallery.id = "detail-gallery";
+                gallery.className = "mb-1";
+
+                // Main image
+                const mainImage = document.createElement("img");
+                mainImage.id = "detail-main-photo";
+                mainImage.className =
+                    "w-full h-52 object-cover rounded-xl bg-slate-800 border border-slate-800";
+                mainImage.loading = "eager";
+                mainImage.alt = "Tourist attraction";
+
+                // Photo count
+                const photoCount = document.createElement("p");
+                photoCount.id = "detail-photo-count";
+                photoCount.className =
+                    "text-[11px] text-slate-400 mt-2 mb-2";
+
+                // Thumbnail row
+                const thumbnails = document.createElement("div");
+                thumbnails.id = "detail-thumbnails";
+                thumbnails.className =
+                    "flex gap-2 overflow-x-auto pb-1";
+
+                gallery.appendChild(mainImage);
+                gallery.appendChild(photoCount);
+                gallery.appendChild(thumbnails);
+
+                detailsCard.insertBefore(gallery, detailsCard.children[0]);
+            }
+
+            const photos = Array.isArray(place.photos)
+                ? place.photos.filter(url => typeof url === "string" && url.trim() !== "")
+                : [];
+
+            const mainImage = document.getElementById("detail-main-photo");
+            const photoCount = document.getElementById("detail-photo-count");
+            const thumbnails = document.getElementById("detail-thumbnails");
+
+            thumbnails.innerHTML = "";
+
+            if (photos.length === 0) {
+                gallery.classList.add("hidden");
+            } else {
+                gallery.classList.remove("hidden");
+
+                photoCount.innerText = `${photos.length} photo${photos.length === 1 ? "" : "s"} available`;
+
+                let activeIndex = 0;
+
+                const setMainPhoto = (index) => {
+                    activeIndex = index;
+                    mainImage.src = photos[index];
+                    mainImage.alt = place.name || "Tourist attraction";
+
+                    Array.from(thumbnails.children).forEach((thumb, i) => {
+                        if (i === activeIndex) {
+                            thumb.classList.add("ring-2", "ring-emerald-400");
+                            thumb.classList.remove("opacity-70");
+                        } else {
+                            thumb.classList.remove("ring-2", "ring-emerald-400");
+                            thumb.classList.add("opacity-70");
+                        }
+                    });
+                };
+
+                photos.forEach((url, index) => {
+                    const thumb = document.createElement("button");
+                    thumb.type = "button";
+                    thumb.className =
+                        "shrink-0 w-20 h-14 rounded-lg overflow-hidden border border-slate-800 bg-slate-800 opacity-70 transition";
+                    thumb.title = `Photo ${index + 1}`;
+
+                    const img = document.createElement("img");
+                    img.src = url;
+                    img.alt = `${place.name || "Attraction"} photo ${index + 1}`;
+                    img.className = "w-full h-full object-cover";
+                    img.loading = "eager";
+
+                    img.onerror = () => {
+                        thumb.remove();
+                    };
+
+                    thumb.appendChild(img);
+                    thumb.addEventListener("click", () => setMainPhoto(index));
+                    thumbnails.appendChild(thumb);
+                });
+
+                mainImage.onerror = () => {
+                    const nextIndex = photos.findIndex((url, i) =>
+                        i > activeIndex && url !== mainImage.src
+                    );
+
+                    if (nextIndex !== -1) {
+                        setMainPhoto(nextIndex);
+                    } else {
+                        gallery.classList.add("hidden");
+                    }
+                };
+
+                setMainPhoto(0);
+            }
+
+            // Automatically move the sidebar to the selected attraction details.
+            const sidebar = document.querySelector("aside");
+            if (sidebar && detailsCard) {
+                setTimeout(() => {
+                    detailsCard.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+                }, 50);
+            }
+        }
+
+
+        // =================================================
+        // SEARCH TOURIST PLACES
+        // =================================================
+
+
+        // =================================================
+        // CURRENT USER LOCATION
+        // =================================================
+
+        function setLocationStatus(
+            message,
+            className = "text-[11px] text-slate-500 mt-2"
+        ) {
+            locationStatus.className = className;
+            locationStatus.innerText = message;
+        }
+
+
+        function requestCurrentLocation() {
+
+            if (!navigator.geolocation) {
+
+                useCurrentLocation.checked = false;
+
+                setLocationStatus(
+                    "Location is not supported by this browser.",
+                    "text-[11px] text-amber-400 mt-2"
+                );
+
+                return;
+            }
+
+            setLocationStatus(
+                "Requesting your current location...",
+                "text-[11px] text-emerald-400 mt-2"
+            );
+
+            navigator.geolocation.getCurrentPosition(
+                position => {
+
+                    currentUserLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+
+                    if (currentLocationMarker) {
+                        map.removeLayer(currentLocationMarker);
+                    }
+
+                    currentLocationMarker =
+                        L.circleMarker(
+                            [
+                                currentUserLocation.latitude,
+                                currentUserLocation.longitude
+                            ],
+                            {
+                                radius: 8,
+                                weight: 3,
+                                fillOpacity: 0.9
+                            }
+                        ).addTo(map);
+
+                    currentLocationMarker.bindPopup(
+                        "<strong>📍 Your current location</strong>"
+                    );
+
+                    setLocationStatus(
+                        "✓ Current location detected.",
+                        "text-[11px] text-emerald-400 mt-2"
+                    );
+                },
+
+                error => {
+
+                    currentUserLocation = null;
+                    useCurrentLocation.checked = false;
+
+                    let message =
+                        "Could not get your location.";
+
+                    if (error.code === 1) {
+                        message =
+                            "Location permission was denied.";
+                    } else if (error.code === 2) {
+                        message =
+                            "Your location could not be determined.";
+                    } else if (error.code === 3) {
+                        message =
+                            "Location request timed out.";
+                    }
+
+                    setLocationStatus(
+                        message,
+                        "text-[11px] text-amber-400 mt-2"
+                    );
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                }
+            );
+        }
+
+
+        function clearCurrentLocation() {
+
+            currentUserLocation = null;
+
+            if (currentLocationMarker) {
+                map.removeLayer(currentLocationMarker);
+                currentLocationMarker = null;
+            }
+
+            setLocationStatus(
+                "Current location is optional."
+            );
+        }
+
+
+
+        function useUserLocationAsRouteStart() {
+            return (
+                useCurrentLocation &&
+                useCurrentLocation.checked &&
+                currentUserLocation &&
+                Number.isFinite(Number(currentUserLocation.latitude)) &&
+                Number.isFinite(Number(currentUserLocation.longitude))
+            );
+        }
+
+        function getCurrentLocationRoutePlace() {
+            if (!useUserLocationAsRouteStart()) {
+                return null;
+            }
+
+            return {
+                name: "Current Location",
+                latitude: Number(currentUserLocation.latitude),
+                longitude: Number(currentUserLocation.longitude),
+                isCurrentLocation: true
+            };
+        }
+
+
+        // =================================================
+        // ROUTE SELECTION
+        // =================================================
+
+        function updateRouteSelectionUI() {
+
+            routeSelectedCount.innerText =
+                `${selectedRoutePlaces.length} selected`;
+
+            generateRouteButton.disabled =
+                selectedRoutePlaces.length < 2;
+        }
+
+
+        function toggleRoutePlace(place, checkbox, card) {
+
+            const index =
+                selectedRoutePlaces.findIndex(
+                    selected =>
+                        selected.name === place.name &&
+                        selected.latitude === place.latitude &&
+                        selected.longitude === place.longitude
+                );
+
+            if (checkbox.checked) {
+
+                if (index === -1) {
+                    selectedRoutePlaces.push(place);
+                }
+
+                card.classList.add(
+                    "border-emerald-500/60",
+                    "bg-emerald-500/5"
+                );
+
+            } else {
+
+                if (index !== -1) {
+                    selectedRoutePlaces.splice(index, 1);
+                }
+
+                card.classList.remove(
+                    "border-emerald-500/60",
+                    "bg-emerald-500/5"
+                );
+            }
+
+            updateRouteSelectionUI();
+        }
+
+
+        // =================================================
+        // GENERATE ROUTE
+        // =================================================
+
+
+        // =================================================
+        // BUILD SIMPLE TRIP ITINERARY
+        // =================================================
+
+        function formatTime(totalMinutes) {
+
+            const hours =
+                Math.floor(totalMinutes / 60) % 24;
+
+            const minutes =
+                Math.round(totalMinutes % 60);
+
+            const suffix =
+                hours >= 12 ? "PM" : "AM";
+
+            let displayHour =
+                hours % 12;
+
+            if (displayHour === 0) {
+                displayHour = 12;
+            }
+
+            return `${displayHour}:${String(minutes).padStart(2, "0")} ${suffix}`;
+        }
+
+
+        function parseTimeRange(description) {
+
+            if (!description) {
+                return null;
+            }
+
+            const matches =
+                description.match(
+                    /(\d{1,2}):(\d{2})\s*(AM|PM).*?[–-]\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i
+                );
+
+            if (!matches) {
+                return null;
+            }
+
+            function toMinutes(hour, minute, suffix) {
+
+                hour = Number(hour);
+                minute = Number(minute);
+
+                if (suffix.toUpperCase() === "PM" && hour !== 12) {
+                    hour += 12;
+                }
+
+                if (suffix.toUpperCase() === "AM" && hour === 12) {
+                    hour = 0;
+                }
+
+                return hour * 60 + minute;
+            }
+
+            return {
+                open: toMinutes(matches[1], matches[2], matches[3]),
+                close: toMinutes(matches[4], matches[5], matches[6])
+            };
+        }
+
+
+        function getOpeningInfo(place, dayIndex) {
+
+            const descriptions =
+                place.opening_hours &&
+                Array.isArray(place.opening_hours.weekdayDescriptions)
+                    ? place.opening_hours.weekdayDescriptions
+                    : [];
+
+            if (descriptions.length !== 7) {
+                return {
+                    text: "Opening hours unavailable",
+                    range: null
+                };
+            }
+
+            const description =
+                descriptions[dayIndex];
+
+            return {
+                text: description || "Opening hours unavailable",
+                range: parseTimeRange(description)
+            };
+        }
+
+
+        function buildItinerary() {
+
+            itineraryList.innerHTML = "";
+
+            if (
+                selectedRoutePlaces.length < 1
+            ) {
+                itineraryPanel.classList.add("hidden");
+                return;
+            }
+
+            if (
+                !useUserLocationAsRouteStart() &&
+                selectedRoutePlaces.length < 2
+            ) {
+                itineraryPanel.classList.add("hidden");
+                return;
+            }
+
+            const parts =
+                tripStartTime.value.split(":").map(Number);
+
+            let currentMinutes =
+                parts[0] * 60 + parts[1];
+
+            const visitMinutes =
+                Number(visitDuration.value);
+
+            const jsDay =
+                new Date().getDay();
+
+            const dayIndex =
+                jsDay === 0 ? 6 : jsDay - 1;
+
+            let warningCount = 0;
+            let unknownHoursCount = 0;
+            let totalLegMinutes = 0;
+            let totalWaitingMinutes = 0;
+
+            selectedRoutePlaces.forEach(
+                (place, index) => {
+
+                    const legIndex =
+                        useUserLocationAsRouteStart()
+                            ? index
+                            : index - 1;
+
+                    const leg =
+                        routeLegs[legIndex];
+
+                    if (leg) {
+
+                        const legMinutes =
+                            Math.max(
+                                0,
+                                Math.round(
+                                    Number(
+                                        leg.duration_minutes
+                                    )
+                                )
+                            );
+
+                        const legDistance =
+                            Number(leg.distance_km);
+
+                        const distanceText =
+                            Number.isFinite(legDistance)
+                                ? ` • ${legDistance.toFixed(1)} km`
+                                : "";
+
+                        const driveItem =
+                            document.createElement("div");
+
+                        driveItem.className =
+                            "ml-3 my-2 py-2 border-l border-slate-700 pl-3";
+
+                        const driveTitle =
+                            document.createElement("div");
+
+                        driveTitle.className =
+                            "text-[11px] text-sky-400 font-semibold";
+
+                        driveTitle.innerText =
+                            useUserLocationAsRouteStart() &&
+                            index === 0
+                                ? `🚗 From your current location to ${place.name}`
+                                : `🚗 Drive to ${place.name}`;
+
+                        const driveTime =
+                            document.createElement("div");
+
+                        driveTime.className =
+                            "text-[11px] text-slate-400 mt-1";
+
+                        driveTime.innerText =
+                            `${formatDuration(legMinutes)}${distanceText}`;
+
+                        driveItem.appendChild(driveTitle);
+                        driveItem.appendChild(driveTime);
+                        itineraryList.appendChild(driveItem);
+
+                        currentMinutes += legMinutes;
+                        totalLegMinutes += legMinutes;
+                    }
+
+                    const opening =
+                        getOpeningInfo(
+                            place,
+                            dayIndex
+                        );
+
+                    if (
+                        opening.range &&
+                        currentMinutes <
+                            opening.range.open
+                    ) {
+
+                        const waitMinutes =
+                            opening.range.open -
+                            currentMinutes;
+
+                        totalWaitingMinutes +=
+                            waitMinutes;
+
+                        const waitItem =
+                            document.createElement("div");
+
+                        waitItem.className =
+                            "ml-3 my-2 py-2 border-l border-amber-500/40 pl-3";
+
+                        waitItem.innerHTML =
+                            `<div class="text-[11px] text-amber-400 font-semibold">` +
+                            `⏳ Wait until ${formatTime(opening.range.open)}` +
+                            `</div>` +
+                            `<div class="text-[11px] text-slate-500 mt-1">` +
+                            `${formatDuration(waitMinutes)} waiting for ${place.name} to open` +
+                            `</div>`;
+
+                        itineraryList.appendChild(waitItem);
+
+                        currentMinutes =
+                            opening.range.open;
+                    }
+
+                    const start =
+                        currentMinutes;
+
+                    const end =
+                        start + visitMinutes;
+
+                    let statusText =
+                        opening.text;
+
+                    let statusClass =
+                        "text-slate-500";
+
+                    if (opening.range) {
+
+                        const fits =
+                            start >= opening.range.open &&
+                            end <= opening.range.close;
+
+                        if (fits) {
+                            statusText =
+                                `✓ Open during visit • ${opening.text}`;
+                            statusClass =
+                                "text-emerald-400";
+                        } else {
+                            statusText =
+                                `⚠ Visit does not fit opening hours • ${opening.text}`;
+                            statusClass =
+                                "text-amber-400";
+                            warningCount++;
+                        }
+
+                    } else {
+
+                        unknownHoursCount++;
+
+                        statusText =
+                            "ℹ Opening hours unavailable — schedule could not be validated.";
+
+                        statusClass =
+                            "text-slate-400";
+                    }
+
+                    const item =
+                        document.createElement("div");
+
+                    item.className =
+                        "border-l-2 border-emerald-500/50 pl-3";
+
+                    const name =
+                        document.createElement("div");
+
+                    name.className =
+                        "text-sm font-semibold text-white";
+
+                    name.innerText =
+                        `${index + 1}. ${place.name}`;
+
+                    const time =
+                        document.createElement("div");
+
+                    time.className =
+                        "text-xs text-emerald-400 mt-1";
+
+                    time.innerText =
+                        `${formatTime(start)} – ${formatTime(end)}`;
+
+                    const duration =
+                        document.createElement("div");
+
+                    duration.className =
+                        "text-[11px] text-slate-500 mt-1";
+
+                    duration.innerText =
+                        `Visit duration: ${visitMinutes} min`;
+
+                    const openingText =
+                        document.createElement("div");
+
+                    openingText.className =
+                        `text-[11px] mt-1 ${statusClass}`;
+
+                    openingText.innerText =
+                        statusText;
+
+                    item.appendChild(name);
+                    item.appendChild(time);
+                    item.appendChild(duration);
+                    item.appendChild(openingText);
+
+                    itineraryList.appendChild(item);
+
+                    currentMinutes = end;
+                }
+            );
+
+            const totalDrivingMinutes =
+                Number(
+                    routeDuration.dataset.minutes || 0
+                );
+
+            const drivingMinutesForSummary =
+                totalLegMinutes > 0
+                    ? totalLegMinutes
+                    : totalDrivingMinutes;
+
+            let summary =
+                useUserLocationAsRouteStart()
+                    ? "📍 Start: Current location"
+                    : `Start: ${tripStartTime.value}`;
+
+            summary +=
+                ` • ${selectedRoutePlaces.length} attractions` +
+                ` • ${visitMinutes} min per stop` +
+                ` • Driving: ${formatDuration(drivingMinutesForSummary)}`;
+
+            if (totalWaitingMinutes > 0) {
+                summary +=
+                    ` • Waiting: ${formatDuration(totalWaitingMinutes)}`;
+            }
+
+            if (warningCount > 0) {
+                summary +=
+                    ` • ⚠ ${warningCount} stop(s) do not fit opening hours`;
+            } else if (unknownHoursCount > 0) {
+                summary +=
+                    ` • ℹ ${unknownHoursCount} stop(s) have no opening-hours data`;
+            } else {
+                summary +=
+                    ` • ✓ Opening hours fit`;
+            }
+
+            itinerarySummary.innerText =
+                summary;
+
+            itineraryPanel.classList.remove("hidden");
+        }
+
+
+        function formatDuration(totalMinutes) {
+
+            const minutes =
+                Math.max(
+                    0,
+                    Math.round(
+                        Number(totalMinutes) || 0
+                    )
+                );
+
+            const hours =
+                Math.floor(minutes / 60);
+
+            const remaining =
+                minutes % 60;
+
+            if (hours > 0) {
+                return `${hours} hr ${remaining} min`;
+            }
+
+            return `${remaining} min`;
+        }
+
+
+        async function calculateRouteLegs() {
+
+            routeLegs = [];
+
+            if (selectedRoutePlaces.length < 1) {
+                return;
+            }
+
+            if (
+                selectedRoutePlaces.length < 2 &&
+                !useUserLocationAsRouteStart()
+            ) {
+                return;
+            }
+
+            const points = [];
+
+            const origin =
+                getCurrentLocationRoutePlace();
+
+            if (origin) {
+                points.push(origin);
+            }
+
+            points.push(...selectedRoutePlaces);
+
+            const requests = [];
+
+            for (
+                let index = 0;
+                index < points.length - 1;
+                index++
+            ) {
+
+                const from = points[index];
+                const to = points[index + 1];
+
+                requests.push(
+                    fetch(
+                        "http://127.0.0.1:8000/api/route",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                locations: [
+                                    {
+                                        name: from.name,
+                                        latitude: Number(from.latitude),
+                                        longitude: Number(from.longitude)
+                                    },
+                                    {
+                                        name: to.name,
+                                        latitude: Number(to.latitude),
+                                        longitude: Number(to.longitude)
+                                    }
+                                ]
+                            })
+                        }
+                    ).then(async response => {
+
+                        const data =
+                            await response.json();
+
+                        if (!response.ok || !data.success) {
+                            throw new Error(
+                                data.message ||
+                                `Could not calculate route leg ${index + 1}.`
+                            );
+                        }
+
+                        return {
+                            duration_minutes:
+                                Number(data.total_duration_minutes),
+
+                            distance_km:
+                                Number(data.total_distance_km)
+                        };
+                    })
+                );
+            }
+
+            routeLegs =
+                await Promise.all(requests);
+
+            if (
+                routeLegs.some(
+                    leg =>
+                        !Number.isFinite(
+                            Number(leg.duration_minutes)
+                        )
+                )
+            ) {
+                throw new Error(
+                    "One or more travel times could not be calculated."
+                );
+            }
+        }
+
+
+        async function fetchRouteBetweenPlaces(from, to) {
+
+            const response =
+                await fetch(
+                    "http://127.0.0.1:8000/api/route",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            locations: [
+                                {
+                                    name: from.name,
+                                    latitude: Number(from.latitude),
+                                    longitude: Number(from.longitude)
+                                },
+                                {
+                                    name: to.name,
+                                    latitude: Number(to.latitude),
+                                    longitude: Number(to.longitude)
+                                }
+                            ]
+                        })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message ||
+                    `Could not calculate travel from ${from.name} to ${to.name}.`
+                );
+            }
+
+            const duration =
+                Number(data.total_duration_minutes);
+
+            const distance =
+                Number(data.total_distance_km);
+
+            if (!Number.isFinite(duration)) {
+                throw new Error(
+                    `Invalid travel time from ${from.name} to ${to.name}.`
+                );
+            }
+
+            return {
+                duration_minutes: duration,
+                distance_km: distance
+            };
+        }
+
+
+        function generatePermutations(items) {
+
+            if (items.length <= 1) {
+                return [items.slice()];
+            }
+
+            const result = [];
+
+            items.forEach((item, index) => {
+
+                const remaining =
+                    items
+                        .slice(0, index)
+                        .concat(items.slice(index + 1));
+
+                generatePermutations(remaining)
+                    .forEach(permutation => {
+                        result.push([item, ...permutation]);
+                    });
+            });
+
+            return result;
+        }
+
+
+        function routeOrderCost(order, matrix) {
+
+            let total = 0;
+
+            for (
+                let index = 0;
+                index < order.length - 1;
+                index++
+            ) {
+
+                total +=
+                    matrix[order[index]][order[index + 1]]
+                        .duration_minutes;
+            }
+
+            return total;
+        }
+
+
+        function straightLineDistanceKm(a, b) {
+
+            const earthRadius = 6371;
+
+            const lat1 =
+                Number(a.latitude) * Math.PI / 180;
+
+            const lat2 =
+                Number(b.latitude) * Math.PI / 180;
+
+            const deltaLat =
+                (Number(b.latitude) - Number(a.latitude)) *
+                Math.PI / 180;
+
+            const deltaLon =
+                (Number(b.longitude) - Number(a.longitude)) *
+                Math.PI / 180;
+
+            const sinLat =
+                Math.sin(deltaLat / 2);
+
+            const sinLon =
+                Math.sin(deltaLon / 2);
+
+            const value =
+                sinLat * sinLat +
+                Math.cos(lat1) *
+                Math.cos(lat2) *
+                sinLon * sinLon;
+
+            return (
+                2 *
+                earthRadius *
+                Math.asin(
+                    Math.min(
+                        1,
+                        Math.sqrt(value)
+                    )
+                )
+            );
+        }
+
+
+        function simulateRouteSchedule(
+            order,
+            allPlaces,
+            matrix
+        ) {
+
+            const parts =
+                tripStartTime.value.split(":").map(Number);
+
+            let currentMinutes =
+                parts[0] * 60 + parts[1];
+
+            const visitMinutes =
+                Number(visitDuration.value);
+
+            const jsDay =
+                new Date().getDay();
+
+            const dayIndex =
+                jsDay === 0 ? 6 : jsDay - 1;
+
+            let drivingMinutes = 0;
+            let waitingMinutes = 0;
+
+            for (
+                let index = 0;
+                index < order.length;
+                index++
+            ) {
+
+                const placeIndex =
+                    order[index];
+
+                if (index > 0) {
+
+                    const previousIndex =
+                        order[index - 1];
+
+                    const leg =
+                        matrix[previousIndex][placeIndex];
+
+                    if (
+                        !leg ||
+                        !Number.isFinite(
+                            Number(leg.duration_minutes)
+                        )
+                    ) {
+                        return {
+                            feasible: false,
+                            reason: "Missing travel time"
+                        };
+                    }
+
+                    const legMinutes =
+                        Math.max(
+                            0,
+                            Number(leg.duration_minutes)
+                        );
+
+                    drivingMinutes += legMinutes;
+                    currentMinutes += legMinutes;
+                }
+
+                const place =
+                    allPlaces[placeIndex];
+
+                if (
+                    place &&
+                    place.isCurrentLocation
+                ) {
+                    continue;
+                }
+
+                const opening =
+                    getOpeningInfo(place, dayIndex);
+
+                if (opening.range) {
+
+                    if (
+                        currentMinutes <
+                        opening.range.open
+                    ) {
+                        const wait =
+                            opening.range.open -
+                            currentMinutes;
+
+                        waitingMinutes += wait;
+                        currentMinutes =
+                            opening.range.open;
+                    }
+
+                    if (
+                        currentMinutes +
+                        visitMinutes >
+                        opening.range.close
+                    ) {
+                        return {
+                            feasible: false,
+                            reason:
+                                "Visit does not fit opening hours"
+                        };
+                    }
+                }
+
+                currentMinutes += visitMinutes;
+            }
+
+            return {
+                feasible: true,
+                finishMinutes: currentMinutes,
+                drivingMinutes,
+                waitingMinutes
+            };
+        }
+
+
+        async function optimizeSelectedRoute() {
+
+            const useCurrent =
+                useUserLocationAsRouteStart();
+
+            const minimumPlaces =
+                useCurrent ? 2 : 3;
+
+            if (
+                selectedRoutePlaces.length <
+                minimumPlaces
+            ) {
+                return {
+                    changed: false,
+                    exact: false,
+                    hoursAware: false,
+                    feasible: true,
+                    original: selectedRoutePlaces.slice()
+                };
+            }
+
+            const original =
+                selectedRoutePlaces.slice();
+
+            const origin =
+                useCurrent
+                    ? getCurrentLocationRoutePlace()
+                    : null;
+
+            const start =
+                origin ||
+                selectedRoutePlaces[0];
+
+            const remaining =
+                origin
+                    ? selectedRoutePlaces.slice()
+                    : selectedRoutePlaces.slice(1);
+
+            if (selectedRoutePlaces.length <= 8) {
+
+                const allPlaces =
+                    origin
+                        ? [origin, ...selectedRoutePlaces]
+                        : selectedRoutePlaces.slice();
+
+                const matrix =
+                    Array.from(
+                        { length: allPlaces.length },
+                        () =>
+                            Array(
+                                allPlaces.length
+                            ).fill(null)
+                    );
+
+                const requests = [];
+
+                for (
+                    let fromIndex = 0;
+                    fromIndex < allPlaces.length;
+                    fromIndex++
+                ) {
+                    for (
+                        let toIndex = 0;
+                        toIndex < allPlaces.length;
+                        toIndex++
+                    ) {
+
+                        if (fromIndex === toIndex) {
+                            continue;
+                        }
+
+                        requests.push(
+                            fetchRouteBetweenPlaces(
+                                allPlaces[fromIndex],
+                                allPlaces[toIndex]
+                            ).then(
+                                leg => {
+                                    matrix[fromIndex][toIndex] =
+                                        leg;
+                                }
+                            )
+                        );
+                    }
+                }
+
+                await Promise.all(requests);
+
+                const remainingIndexes =
+                    remaining.map(
+                        place =>
+                            allPlaces.indexOf(place)
+                    );
+
+                const startIndex =
+                    allPlaces.indexOf(start);
+
+                const permutations =
+                    generatePermutations(
+                        remainingIndexes
+                    );
+
+                let bestFeasible = null;
+
+                permutations.forEach(
+                    permutation => {
+
+                        const candidate =
+                            [startIndex, ...permutation];
+
+                        const schedule =
+                            simulateRouteSchedule(
+                                candidate,
+                                allPlaces,
+                                matrix
+                            );
+
+                        if (!schedule.feasible) {
+                            return;
+                        }
+
+                        if (
+                            bestFeasible === null ||
+                            schedule.finishMinutes <
+                                bestFeasible.schedule.finishMinutes ||
+                            (
+                                schedule.finishMinutes ===
+                                    bestFeasible.schedule.finishMinutes &&
+                                schedule.drivingMinutes <
+                                    bestFeasible.schedule.drivingMinutes
+                            )
+                        ) {
+                            bestFeasible = {
+                                order: candidate,
+                                schedule
+                            };
+                        }
+                    }
+                );
+
+                let bestOrder;
+                let hoursAware = true;
+                let feasible = true;
+                let schedule;
+
+                if (bestFeasible) {
+
+                    bestOrder =
+                        bestFeasible.order;
+
+                    schedule =
+                        bestFeasible.schedule;
+
+                } else {
+
+                    hoursAware = false;
+                    feasible = false;
+
+                    const remainingOrder =
+                        remainingIndexes.slice();
+
+                    bestOrder =
+                        [startIndex, ...remainingOrder];
+
+                    let bestDriving =
+                        routeOrderCost(
+                            bestOrder,
+                            matrix
+                        );
+
+                    generatePermutations(
+                        remainingIndexes
+                    ).forEach(
+                        permutation => {
+
+                            const candidate =
+                                [startIndex, ...permutation];
+
+                            const candidateDriving =
+                                routeOrderCost(
+                                    candidate,
+                                    matrix
+                                );
+
+                            if (
+                                candidateDriving <
+                                bestDriving
+                            ) {
+                                bestDriving =
+                                    candidateDriving;
+
+                                bestOrder =
+                                    candidate;
+                            }
+                        }
+                    );
+
+                    schedule =
+                        simulateRouteSchedule(
+                            bestOrder,
+                            allPlaces,
+                            matrix
+                        );
+                }
+
+                const optimized =
+                    bestOrder
+                        .filter(
+                            index =>
+                                !allPlaces[index]
+                                    .isCurrentLocation
+                        )
+                        .map(
+                            index =>
+                                allPlaces[index]
+                        );
+
+                const changed =
+                    optimized.some(
+                        (place, index) =>
+                            place !== original[index]
+                    );
+
+                selectedRoutePlaces =
+                    optimized;
+
+                return {
+                    changed,
+                    exact: true,
+                    hoursAware,
+                    feasible,
+                    original,
+
+                    totalMinutes:
+                        schedule &&
+                        Number.isFinite(
+                            schedule.drivingMinutes
+                        )
+                            ? schedule.drivingMinutes
+                            : 0,
+
+                    finishMinutes:
+                        schedule &&
+                        Number.isFinite(
+                            schedule.finishMinutes
+                        )
+                            ? schedule.finishMinutes
+                            : null,
+
+                    waitingMinutes:
+                        schedule &&
+                        Number.isFinite(
+                            schedule.waitingMinutes
+                        )
+                            ? schedule.waitingMinutes
+                            : 0
+                };
+            }
+
+            const unvisited =
+                remaining.slice();
+
+            const optimized = [];
+
+            let current = start;
+
+            while (unvisited.length > 0) {
+
+                let bestIndex = 0;
+                let bestDistance = Infinity;
+
+                unvisited.forEach(
+                    (place, index) => {
+
+                        const distance =
+                            straightLineDistanceKm(
+                                current,
+                                place
+                            );
+
+                        if (
+                            distance <
+                            bestDistance
+                        ) {
+                            bestDistance =
+                                distance;
+
+                            bestIndex =
+                                index;
+                        }
+                    }
+                );
+
+                const next =
+                    unvisited.splice(
+                        bestIndex,
+                        1
+                    )[0];
+
+                optimized.push(next);
+                current = next;
+            }
+
+            const changed =
+                optimized.some(
+                    (place, index) =>
+                        place !== original[index]
+                );
+
+            selectedRoutePlaces =
+                optimized;
+
+            return {
+                changed,
+                exact: false,
+                hoursAware: false,
+                feasible: true,
+                original
+            };
+        }
+
+
+        async function generateRoute() {
+
+            if (
+                selectedRoutePlaces.length < 2 &&
+                !useUserLocationAsRouteStart()
+            ) {
+                alert("Please select at least 2 attractions.");
+                return;
+            }
+
+            if (
+                useCurrentLocation.checked &&
+                !currentUserLocation
+            ) {
+                alert(
+                    "Please allow current location access first."
+                );
+                return;
+            }
+
+            routeLoading.classList.remove("hidden");
+            routeResult.classList.add("hidden");
+            routeOptimizationStatus.classList.add("hidden");
+            routeOptimizationStatus.innerText = "";
+            generateRouteButton.disabled = true;
+            routeLegs = [];
+
+            const routeLoadingText =
+                routeLoading.querySelector("span");
+
+            if (routeLoadingText) {
+                routeLoadingText.innerText =
+                    "Calculating route...";
+            }
+
+            try {
+
+                // -----------------------------------------
+                // OPTIMIZE SELECTED STOP ORDER
+                // -----------------------------------------
+
+                routeLoading.innerText =
+                    "Optimizing stop order...";
+
+                const optimization =
+                    await optimizeSelectedRoute();
+
+                routeOptimizationStatus.classList.remove(
+                    "hidden"
+                );
+
+                if (selectedRoutePlaces.length < 3) {
+
+                    routeOptimizationStatus.innerText =
+                        "✓ Route order kept — at least 3 attractions are needed for optimization.";
+
+                } else if (optimization.exact && optimization.hoursAware && optimization.changed) {
+
+                    routeOptimizationStatus.innerText =
+                        "✓ Route order optimized for travel time while respecting opening hours. Your current location is kept as the start.";
+
+                } else if (optimization.exact && optimization.hoursAware && !optimization.changed) {
+
+                    routeOptimizationStatus.innerText =
+                        "✓ Selected order is already the best feasible order for travel time and opening hours.";
+
+                } else if (optimization.exact && !optimization.hoursAware) {
+
+                    routeOptimizationStatus.innerText =
+                        "⚠ No order could satisfy every known opening window. Shortest driving order used; itinerary shows conflicts.";
+
+                } else if (!optimization.exact) {
+
+                    routeOptimizationStatus.innerText =
+                        "⚡ Fast route-order approximation used for more than 8 attractions. Opening hours are checked in the itinerary. Your current location is kept as the start.";
+                }
+
+                routeLoading.innerText =
+                    "Calculating optimized road route...";
+
+                const response =
+                    await fetch(
+                        "http://127.0.0.1:8000/api/route",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                locations:
+                                    (
+                                        useUserLocationAsRouteStart()
+                                            ? [
+                                                getCurrentLocationRoutePlace(),
+                                                ...selectedRoutePlaces
+                                            ]
+                                            : selectedRoutePlaces
+                                    ).map(
+                                        place => ({
+                                            name: place.name,
+                                            latitude: Number(place.latitude),
+                                            longitude: Number(place.longitude)
+                                        })
+                                    )
+                            })
+                        }
+                    );
+
+                const data =
+                    await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message ||
+                        "Unable to calculate route."
+                    );
+                }
+
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                    routeLayer = null;
+                }
+
+                const coordinates =
+                    data.route &&
+                    Array.isArray(data.route.coordinates)
+                        ? data.route.coordinates
+                        : [];
+
+                if (coordinates.length > 0) {
+
+                    const latLngs =
+                        coordinates.map(
+                            coordinate => [
+                                coordinate[1],
+                                coordinate[0]
+                            ]
+                        );
+
+                    routeLayer =
+                        L.polyline(
+                            latLngs,
+                            {
+                                weight: 5,
+                                opacity: 0.9
+                            }
+                        ).addTo(map);
+
+                    map.fitBounds(
+                        routeLayer.getBounds(),
+                        {
+                            padding: [30, 30]
+                        }
+                    );
+                }
+
+                routeDistance.innerText =
+                    `${data.total_distance_km} km`;
+
+                const minutes =
+                    Number(data.total_duration_minutes);
+
+                const hours =
+                    Math.floor(minutes / 60);
+
+                const remainingMinutes =
+                    Math.round(minutes % 60);
+
+                routeDuration.innerText =
+                    hours > 0
+                        ? `${hours} hr ${remainingMinutes} min`
+                        : `${remainingMinutes} min`;
+
+                routeDuration.dataset.minutes =
+                    String(minutes);
+
+                routeStops.innerHTML = "";
+
+                routeStops.innerHTML = "";
+
+                if (useUserLocationAsRouteStart()) {
+
+                    const startRow =
+                        document.createElement("div");
+
+                    startRow.className =
+                        "text-emerald-400 font-semibold";
+
+                    startRow.innerText =
+                        "📍 Start: Your current location";
+
+                    routeStops.appendChild(startRow);
+
+                    selectedRoutePlaces.forEach(
+                        (place, index) => {
+
+                            const row =
+                                document.createElement("div");
+
+                            row.innerText =
+                                `${index + 1}. ${place.name}`;
+
+                            routeStops.appendChild(row);
+                        }
+                    );
+
+                } else {
+
+                    const stops =
+                        Array.isArray(data.stops)
+                            ? data.stops
+                            : [];
+
+                    stops.forEach(stop => {
+
+                        const row =
+                            document.createElement("div");
+
+                        row.innerText =
+                            `${stop.order}. ${stop.name}`;
+
+                        routeStops.appendChild(row);
+                    });
+                }
+
+                routeLoading.innerText =
+                    "Calculating travel time between stops...";
+
+                await calculateRouteLegs();
+
+                routeResult.classList.remove("hidden");
+
+                buildItinerary();
+
+            } catch (error) {
+
+                console.error(
+                    "Route API error:",
+                    error
+                );
+
+                alert(
+                    error.message ||
+                    "Could not calculate route."
+                );
+
+            } finally {
+
+                routeLoading.classList.add("hidden");
+                updateRouteSelectionUI();
+            }
+        }
+
+
+        async function searchPlace() {
+
+
+            const place =
+                searchInput.value.trim();
+
+
+            if (place === "") {
+
+
+                alert(
+                    "Please enter a place name."
+                );
+
+
+                return;
+
+            }
+
+
+
+            // Show loading
+
+            loadingBox.classList.remove(
+                "hidden"
+            );
+
+
+            loadingBox.innerText =
+                "Finding tourist places and photos...";
+
+
+            resultsBox.classList.add(
+                "hidden"
+            );
+
+
+            resultsBox.innerHTML =
+                "";
+
+
+
+            try {
+
+
+                // =============================================
+                // CALL NEW FASTAPI ENDPOINT
+                // =============================================
+
+                const response =
+                    await fetch(
+                        "http://127.0.0.1:8000/api/nearby-places",
+                        {
+
+                            method:
+                                "POST",
+
+                            headers:
+                                {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                            body:
+                                JSON.stringify(
+                                    {
+                                        place:
+                                            place
+                                    }
+                                )
+
+                        }
+                    );
+
+
+
+                const data =
+                    await response.json();
+
+
+
+                loadingBox.classList.add(
+                    "hidden"
+                );
+
+
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+
+
+                    alert(
+                        data.message ||
+                        "Unable to find tourist places."
+                    );
+
+
+                    return;
+
+                }
+
+
+
+                const places =
+                    data.places ||
+                    [];
+
+                selectedRoutePlaces = [];
+                routeLegs = [];
+
+                if (routeLayer) {
+                    map.removeLayer(routeLayer);
+                    routeLayer = null;
+                }
+
+                updateRouteSelectionUI();
+                routeResult.classList.add("hidden");
+                itineraryPanel.classList.add("hidden");
+                itineraryList.innerHTML = "";
+                itinerarySummary.innerText = "";
+                routeOptimizationStatus.classList.add("hidden");
+                routeOptimizationStatus.innerText = "";
+                routePanel.classList.remove("hidden");
+
+
+
+                if (
+                    places.length === 0
+                ) {
+
+
+                    alert(
+                        "No tourist places found."
+                    );
+
+
+                    return;
+
+                }
+
+
+
+                // Show results
+
+                resultsBox.classList.remove(
+                    "hidden"
+                );
+
+
+
+                // =============================================
+                // =============================================
+                // CENTER MAP ON SEARCH RESULTS
+                // =============================================
+
+                const searchPoints =
+                    places
+                        .filter(
+                            place =>
+                                place.latitude !== undefined &&
+                                place.longitude !== undefined
+                        )
+                        .map(
+                            place => [
+                                Number(place.latitude),
+                                Number(place.longitude)
+                            ]
+                        )
+                        .filter(
+                            point =>
+                                Number.isFinite(point[0]) &&
+                                Number.isFinite(point[1])
+                        );
+
+                if (searchPoints.length === 1) {
+
+                    map.setView(
+                        searchPoints[0],
+                        13
+                    );
+
+                } else if (searchPoints.length > 1) {
+
+                    map.fitBounds(
+                        L.latLngBounds(searchPoints),
+                        {
+                            padding: [40, 40],
+                            maxZoom: 13
+                        }
+                    );
+
+                }
+
+                // REMOVE OLD SEARCH MARKERS
+                // =============================================
+
+                markers.forEach(
+                    marker => {
+
+                        map.removeLayer(
+                            marker
+                        );
+
+                    }
+                );
+
+
+                markers = [];
+
+
+
+                // =============================================
+                // CREATE RESULTS
+                // =============================================
+
+                places.forEach(
+                    (
+                        placeData,
+                        index
+                    ) => {
+
+
+                        // -----------------------------------------
+                        // MAP MARKER
+                        // -----------------------------------------
+
+                        if (
+                            placeData.latitude !== undefined &&
+                            placeData.longitude !== undefined
+                        ) {
+
+
+                            const marker =
+                                L.marker(
+                                    [
+                                        placeData.latitude,
+                                        placeData.longitude
+                                    ]
+                                ).addTo(map);
+
+
+                            markers.push(
+                                marker
+                            );
+
+
+                            marker.bindPopup(
+                                `
+                                <strong>
+                                    ${placeData.name || "Unknown place"}
+                                </strong>
+                                <br>
+                                ${placeData.address || ""}
+                                `
+                            );
+
+
+                            marker.on(
+                                "click",
+                                () => {
+
+                                    showPlaceDetails(
+                                        placeData
+                                    );
+
+                                }
+                            );
+
+                        }
+
+
+
+                        // -----------------------------------------
+                        // RESULT CARD
+                        // -----------------------------------------
+
+                        const card =
+                            document.createElement(
+                                "div"
+                            );
+
+
+                        card.className =
+                            "border-b border-slate-800 p-4 " +
+                            "hover:bg-slate-800/60 transition cursor-pointer";
+
+
+
+                        // -----------------------------------------
+                        // ROUTE SELECT CHECKBOX
+                        // -----------------------------------------
+
+                        const routeRow =
+                            document.createElement("div");
+
+                        routeRow.className =
+                            "flex items-center justify-between mb-3";
+
+                        const routeLabel =
+                            document.createElement("label");
+
+                        routeLabel.className =
+                            "flex items-center gap-2 text-xs text-slate-400 cursor-pointer";
+
+                        const checkbox =
+                            document.createElement("input");
+
+                        checkbox.type = "checkbox";
+                        checkbox.className =
+                            "accent-emerald-500 h-4 w-4";
+
+                        const checkboxText =
+                            document.createElement("span");
+
+                        checkboxText.innerText =
+                            "Add to route";
+
+                        routeLabel.appendChild(checkbox);
+                        routeLabel.appendChild(checkboxText);
+                        routeRow.appendChild(routeLabel);
+                        card.appendChild(routeRow);
+
+                        checkbox.addEventListener(
+                            "click",
+                            event => event.stopPropagation()
+                        );
+
+                        checkbox.addEventListener(
+                            "change",
+                            event => {
+
+                                event.stopPropagation();
+
+                                toggleRoutePlace(
+                                    placeData,
+                                    checkbox,
+                                    card
+                                );
+                            }
+                        );
+
+
+                        // -----------------------------------------
+                        // PHOTO
+                        // -----------------------------------------
+
+                        const photos =
+                            Array.isArray(
+                                placeData.photos
+                            )
+                                ? placeData.photos
+                                : [];
+
+
+                       const imageUrl =
+    photos.length > 0
+        ? photos[0]
+         : "";
+
+
+
+                        if (imageUrl) {
+
+
+                            const image =
+                                document.createElement(
+                                    "img"
+                                );
+
+
+                            image.src =
+                                imageUrl;
+
+
+                            image.alt =
+                                placeData.name ||
+                                "Tourist attraction";
+
+
+                            image.className =
+                                "w-full h-36 object-cover rounded-xl mb-3 bg-slate-800";
+
+
+                            image.loading =
+                                "eager";
+
+
+                            image.onerror =
+                                () => {
+
+                                    image.remove();
+
+                                };
+
+
+                            card.appendChild(
+                                image
+                            );
+
+                        }
+
+
+
+                        // -----------------------------------------
+                        // TITLE
+                        // -----------------------------------------
+
+                        const title =
+                            document.createElement(
+                                "h3"
+                            );
+
+
+                        title.className =
+                            "font-semibold text-white text-sm mb-1";
+
+
+                        title.innerText =
+                            `${index + 1}. ${
+                                placeData.name ||
+                                "Unknown place"
+                            }`;
+
+
+                        card.appendChild(
+                            title
+                        );
+
+
+
+                        // -----------------------------------------
+                        // SCORE
+                        // -----------------------------------------
+
+                        const score =
+                            document.createElement(
+                                "div"
+                            );
+
+
+                        score.className =
+                            "text-xs text-emerald-400 font-semibold mb-2";
+
+
+                        score.innerText =
+                            `⭐ Attraction Score: ${
+                                placeData.score ?? 0
+                            }`;
+
+
+                        card.appendChild(
+                            score
+                        );
+
+
+
+                        // -----------------------------------------
+                        // ADDRESS
+                        // -----------------------------------------
+
+                        if (
+                            placeData.address
+                        ) {
+
+
+                            const address =
+                                document.createElement(
+                                    "p"
+                                );
+
+
+                            address.className =
+                                "text-xs text-slate-400 leading-relaxed mb-2";
+
+
+                            address.innerText =
+                                placeData.address;
+
+
+                            card.appendChild(
+                                address
+                            );
+
+                        }
+
+
+
+                        // -----------------------------------------
+                        // PHOTO COUNT
+                        // -----------------------------------------
+
+                        const photoInfo =
+                            document.createElement(
+                                "p"
+                            );
+
+
+                        photoInfo.className =
+                            "text-[11px] text-slate-500";
+
+
+                        photoInfo.innerText =
+                            photos.length > 0
+                                ? `📷 ${photos.length} photos available`
+                                : "📷 No photos available";
+
+
+                        card.appendChild(
+                            photoInfo
+                        );
+
+
+
+                        // -----------------------------------------
+                        // CARD CLICK
+                        // -----------------------------------------
+
+                        card.addEventListener(
+                            "click",
+                            () => {
+
+
+                                if (
+                                    placeData.latitude !== undefined &&
+                                    placeData.longitude !== undefined
+                                ) {
+
+
+                                    map.setView(
+                                        [
+                                            placeData.latitude,
+                                            placeData.longitude
+                                        ],
+                                        14
+                                    );
+
+                                }
+
+
+                                showPlaceDetails(
+                                    placeData
+                                );
+
+                            }
+                        );
+
+
+
+                        resultsBox.appendChild(
+                            card
+                        );
+
+                    }
+                );
+
+
+            }
+            catch (error) {
+
+
+                loadingBox.classList.add(
+                    "hidden"
+                );
+
+
+                console.error(
+                    "Nearby Places API error:",
+                    error
+                );
+
+
+                alert(
+                    "Could not connect to the RouteMind backend. " +
+                    "Make sure FastAPI is running on port 8000."
+                );
+
+            }
+
+        }
+
+
+
+        // =================================================
+        // START APPLICATION
+        // =================================================
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            () => {
+
+
+                // Load existing saved places
+
+                // Do not load all saved places on startup.
+        // Attraction markers are added only after a search.
+
+
+
+                // Search button
+
+                searchButton.addEventListener(
+                    "click",
+                    searchPlace
+                );
+
+                generateRouteButton.addEventListener(
+                    "click",
+                    generateRoute
+                );
+
+                useCurrentLocation.addEventListener(
+                    "change",
+                    () => {
+                        if (useCurrentLocation.checked) {
+                            requestCurrentLocation();
+                        } else {
+                            clearCurrentLocation();
+                        }
+                    }
+                );
+
+                async function refreshPlanAfterTimingChange() {
+
+                    if (
+                        itineraryPanel.classList.contains("hidden") ||
+                        selectedRoutePlaces.length < 2
+                    ) {
+                        return;
+                    }
+
+                    if (selectedRoutePlaces.length >= 3) {
+                        await generateRoute();
+                    } else {
+                        buildItinerary();
+                    }
+                }
+
+                tripStartTime.addEventListener(
+                    "change",
+                    refreshPlanAfterTimingChange
+                );
+
+                visitDuration.addEventListener(
+                    "change",
+                    refreshPlanAfterTimingChange
+                );
+
+
+
+                // Enter key support
+
+                searchInput.addEventListener(
+                    "keydown",
+                    event => {
+
+                        if (
+                            event.key === "Enter"
+                        ) {
+
+                            searchPlace();
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+
+    </script>
+
+
+</body>
+
+</html>
