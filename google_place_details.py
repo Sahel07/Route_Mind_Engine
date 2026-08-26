@@ -3,46 +3,41 @@ import time
 import httpx
 from dotenv import load_dotenv
 
-
-# =========================================================
-# LOAD ENVIRONMENT VARIABLES
-# =========================================================
-
 load_dotenv()
 
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
-
-# =========================================================
-# GOOGLE PLACE DETAILS
-# =========================================================
 
 def get_place_details(place_id: str):
 
     if not API_KEY:
         return {
             "success": False,
-            "message": "GOOGLE_MAPS_API_KEY not found in .env file."
+            "rating": None,
+            "review_count": None,
+            "website": None,
+            "opening_hours": None,
+            "phone": None
         }
 
     if not place_id:
         return {
             "success": False,
-            "message": "Place ID is required."
+            "rating": None,
+            "review_count": None,
+            "website": None,
+            "opening_hours": None,
+            "phone": None
         }
 
     url = (
-        f"https://places.googleapis.com/v1/places/"
-        f"{place_id}"
+        "https://places.googleapis.com/v1/"
+        f"places/{place_id}"
     )
 
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": API_KEY,
-
-        # -------------------------------------------------
-        # Fields we want from Google
-        # -------------------------------------------------
 
         "X-Goog-FieldMask": (
             "id,"
@@ -57,18 +52,15 @@ def get_place_details(place_id: str):
         )
     }
 
+    max_retries = 3
+    delays = [2, 5, 10]
+
     try:
 
         print(
             f"\n[Google Details] "
-            f"Fetching place details..."
+            f"Fetching details for {place_id}..."
         )
-
-        # -------------------------------------------------
-        # REQUEST WITH 429 RETRY / BACKOFF
-        # -------------------------------------------------
-        max_retries = 3
-        delays = [2, 5, 10]
 
         for attempt in range(max_retries + 1):
 
@@ -83,210 +75,127 @@ def get_place_details(place_id: str):
                 f"Status: {response.status_code}"
             )
 
+            # -------------------------------------------------
+            # SUCCESS
+            # -------------------------------------------------
+
             if response.status_code == 200:
-                break
 
-            if response.status_code == 429 and attempt < max_retries:
+                data = response.json()
 
-                retry_after = response.headers.get("Retry-After")
+                return {
+                    "success": True,
 
-                if retry_after:
-                    try:
-                        wait_seconds = max(1, int(float(retry_after)))
-                    except ValueError:
+                    "rating":
+                        data.get("rating"),
+
+                    "review_count":
+                        data.get("userRatingCount"),
+
+                    "website":
+                        data.get("websiteUri"),
+
+                    "opening_hours":
+                        data.get("regularOpeningHours"),
+
+                    "phone":
+                        data.get("nationalPhoneNumber")
+                }
+
+            # -------------------------------------------------
+            # RATE LIMIT
+            # -------------------------------------------------
+
+            if response.status_code == 429:
+
+                if attempt < max_retries:
+
+                    retry_after = response.headers.get(
+                        "Retry-After"
+                    )
+
+                    if retry_after:
+
+                        try:
+                            wait_seconds = max(
+                                1,
+                                int(float(retry_after))
+                            )
+                        except ValueError:
+                            wait_seconds = delays[attempt]
+
+                    else:
                         wait_seconds = delays[attempt]
-                else:
-                    wait_seconds = delays[attempt]
+
+                    print(
+                        f"[Google Details] "
+                        f"Rate limited (429). "
+                        f"Retrying in {wait_seconds}s "
+                        f"({attempt + 1}/{max_retries})..."
+                    )
+
+                    time.sleep(wait_seconds)
+
+                    continue
 
                 print(
-                    f"[Google Details] Rate limited (429). "
-                    f"Retrying in {wait_seconds}s "
-                    f"({attempt + 1}/{max_retries})..."
+                    "[Google Details] "
+                    "429 after all retries."
                 )
 
-                time.sleep(wait_seconds)
-                continue
+                return {
+                    "success": False,
+                    "rating": None,
+                    "review_count": None,
+                    "website": None,
+                    "opening_hours": None,
+                    "phone": None
+                }
+
+            # -------------------------------------------------
+            # OTHER GOOGLE ERROR
+            # -------------------------------------------------
+
+            print(
+                f"[Google Details] "
+                f"Failed: {response.status_code}"
+            )
 
             return {
                 "success": False,
-                "status_code": response.status_code,
-                "message": (
-                    "Google Place Details API error:\n"
-                    f"{response.text}"
-                )
+                "rating": None,
+                "review_count": None,
+                "website": None,
+                "opening_hours": None,
+                "phone": None
             }
-
-        # -------------------------------------------------
-        # JSON RESPONSE
-        # -------------------------------------------------
-
-        data = response.json()
-
-        # -------------------------------------------------
-        # RETURN DATA
-        # -------------------------------------------------
-
-        return {
-            "success": True,
-            "data": data
-        }
 
     except httpx.TimeoutException:
 
-        return {
-            "success": False,
-            "message": (
-                "Google Place Details request "
-                "timed out."
-            )
-        }
+        print(
+            "[Google Details] "
+            "Request timed out."
+        )
 
     except httpx.RequestError as e:
 
-        return {
-            "success": False,
-            "message": (
-                f"Network error: {str(e)}"
-            )
-        }
+        print(
+            f"[Google Details] "
+            f"Network error: {e}"
+        )
 
     except Exception as e:
 
-        return {
-            "success": False,
-            "message": str(e)
-        }
-
-
-# =========================================================
-# TEST
-# =========================================================
-
-if __name__ == "__main__":
-
-    print(
-        "\n======================================"
-    )
-
-    print(
-        " GOOGLE PLACE DETAILS TEST"
-    )
-
-    print(
-        "======================================"
-    )
-
-    # -----------------------------------------------------
-    # Fort Aguada Place ID
-    # -----------------------------------------------------
-
-    place_id = input(
-        "\nEnter Google Place ID: "
-    ).strip()
-
-    result = get_place_details(
-        place_id
-    )
-
-    print(
-        "\n======================================"
-    )
-
-    if result["success"]:
-
         print(
-            "SUCCESS - PLACE DETAILS FOUND"
+            f"[Google Details] "
+            f"Error: {e}"
         )
 
-        print(
-            "======================================"
-        )
-
-        data = result["data"]
-
-        print(
-            "\nRaw Google Response:"
-        )
-
-        print(
-            data
-        )
-
-        print(
-            "\n--------------------------------------"
-        )
-
-        print(
-            "IMPORTANT FIELDS"
-        )
-
-        print(
-            "--------------------------------------"
-        )
-
-        print(
-            "ID:",
-            data.get("id")
-        )
-
-        print(
-            "Name:",
-            data.get(
-                "displayName",
-                {}
-            ).get("text")
-        )
-
-        print(
-            "Address:",
-            data.get(
-                "formattedAddress"
-            )
-        )
-
-        print(
-            "Rating:",
-            data.get(
-                "rating"
-            )
-        )
-
-        print(
-            "Review Count:",
-            data.get(
-                "userRatingCount"
-            )
-        )
-
-        print(
-            "Phone:",
-            data.get(
-                "nationalPhoneNumber"
-            )
-        )
-
-        print(
-            "Website:",
-            data.get(
-                "websiteUri"
-            )
-        )
-
-        print(
-            "Opening Hours:",
-            data.get(
-                "regularOpeningHours"
-            )
-        )
-
-    else:
-
-        print(
-            "FAILED"
-        )
-
-        print(
-            result.get(
-                "message"
-            )
-        )
+    return {
+        "success": False,
+        "rating": None,
+        "review_count": None,
+        "website": None,
+        "opening_hours": None,
+        "phone": None
+    }
