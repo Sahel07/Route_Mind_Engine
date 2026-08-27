@@ -667,7 +667,7 @@
                         rel="noopener noreferrer"
                         class="hidden w-full items-center justify-center px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition text-sm font-semibold text-white"
                     >
-                        🌐 Visit Website
+                        🌐 Visit Official Website ↗
                     </a>
 
                 </div>
@@ -1094,11 +1094,15 @@
 
                 if (
                     place.website &&
-                    typeof place.website === "string"
+                    typeof place.website === "string" &&
+                    place.website.trim() !== ""
                 ) {
 
                     websiteElement.href =
-                        place.website;
+                        place.website.trim();
+
+                    websiteElement.innerText =
+                        "🌐 Visit Official Website ↗";
 
                     websiteElement.classList.remove(
                         "hidden"
@@ -1107,19 +1111,28 @@
                     websiteElement.classList.add(
                         "inline-flex"
                     );
+
+                    websiteElement.onclick = null;
 
                 } else {
 
                     websiteElement.href =
                         "#";
 
+                    websiteElement.innerText =
+                        "🌐 Website Not Available";
+
                     websiteElement.classList.remove(
-                        "inline-flex"
+                        "hidden"
                     );
 
                     websiteElement.classList.add(
-                        "hidden"
+                        "inline-flex"
                     );
+
+                    websiteElement.onclick = function(event) {
+                        event.preventDefault();
+                    };
                 }
             }
         }
